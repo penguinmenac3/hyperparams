@@ -19,7 +19,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+import os
+import re
 import json
 try:
     from jsmin import jsmin
@@ -35,8 +36,34 @@ def load_params(filepath):
     :param filepath: Path to the json file.
     :return: A hyper parameters object.
     """
+    # Read the file
     with open(filepath) as file:
-        return HyperParams(json.loads(jsmin(file.read())))
+        content = file.read()
+
+    # Detect all environment variables referenced (using %EXAMPLE%, use windows style since it is easier to match)
+    q = [m.start() for m in re.finditer("%", content)]
+    env_vars = []
+    for i in range(0, len(q), 2):
+        env_var = content[q[i]+1:q[i+1]]
+        if env_var not in env_vars:
+            if env_var in os.environ:
+                env_vars.append(env_var)
+            else:
+                print("WARNING: Detected an environment variable which is not set.")
+    
+    # Fill in environment variables
+    for env_var in env_vars:
+        s = "%" + env_var + "%"
+        # Use unix style path linebreaks, since windows style might break stuff (and linux is more common anyways.)
+        content = content.replace(s, os.environ[env_var].replace("\\", "/"))
+
+    # Try to match linux path style with anything that matches
+    for env_var in list(os.environ.keys()):
+        s = "$" + env_var
+        content = content.replace(s, os.environ[env_var].replace("\\", "/"))
+
+    # Finally load hyperparams
+    return HyperParams(json.loads(jsmin(content)))
 
 
 class HyperParams(object):

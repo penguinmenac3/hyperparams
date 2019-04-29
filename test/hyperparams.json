@@ -1,0 +1,15 @@
+{
+    "TestStr": "Foo",
+    "TestInt": 42,
+    "TestFloat": 4.2,
+    "TestObj": {
+        "TestA": "a",
+        "TestB": "b"
+    },
+    "TestArr": [
+        "Foo",
+        "bar"
+    ],
+    "TestWinEnvPythonPath": "%TMP%/Foobar",
+    "TestLinuxEnvPythonPath": "$TMP/Foobar"
+}
