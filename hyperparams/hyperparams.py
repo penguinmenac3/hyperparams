@@ -22,6 +22,7 @@
 import os
 import re
 import json
+from importlib import import_module
 try:
     from jsmin import jsmin
 except ModuleNotFoundError:
@@ -30,6 +31,31 @@ except ModuleNotFoundError:
 _sentinel = object()
 
 
+def import_params(params_file):
+    """
+    Only libraries should use this method. Human users should directly import their configs.
+    Automatically imports the most specific hyperparams from a given file.
+    """
+    module_name = params_file.replace("\\", ".").replace("/", ".").replace(".py", "")
+    module = import_module(module_name)
+    symbols = list(module.__dict__.keys())
+    symbols = [x for x in symbols if not x.startswith("__") and not x == "HyperParams"]
+    n = None
+    for x in symbols:
+        if issubclass(module.__dict__[x], HyperParams):
+            # Allow multiple derivatives of hyperparams, when they are derivable from each other in any direction.
+            if n is not None and not issubclass(module.__dict__[x], module.__dict__[n]) and not issubclass(module.__dict__[n], module.__dict__[x]):
+                raise RuntimeError("You must only have one class derived from HyperParams in {}. It cannot be decided which to use.".format(params_file))
+            # Pick the most specific one if they can be derived.
+            if n is None or issubclass(module.__dict__[x], module.__dict__[n]):
+                n = x
+    if n is None:
+        raise RuntimeError("There must be at least one class in {} derived from HyperParams.".format(params_file))
+    config = module.__dict__[n]()
+    return config
+
+
+@DeprecationWarning
 def load_params(filepath):
     """
     Load your hyper parameters from a json file.
@@ -39,28 +65,6 @@ def load_params(filepath):
     # Read the file
     with open(filepath) as file:
         content = file.read()
-
-    # Detect all environment variables referenced (using %EXAMPLE%, use windows style since it is easier to match)
-    q = [m.start() for m in re.finditer("%", content)]
-    env_vars = []
-    for i in range(0, len(q), 2):
-        env_var = content[q[i]+1:q[i+1]]
-        if env_var not in env_vars:
-            if env_var in os.environ:
-                env_vars.append(env_var)
-            else:
-                print("WARNING: Detected an environment variable which is not set.")
-    
-    # Fill in environment variables
-    for env_var in env_vars:
-        s = "%" + env_var + "%"
-        # Use unix style path linebreaks, since windows style might break stuff (and linux is more common anyways.)
-        content = content.replace(s, os.environ[env_var].replace("\\", "/"))
-
-    # Try to match linux path style with anything that matches
-    for env_var in list(os.environ.keys()):
-        s = "$" + env_var
-        content = content.replace(s, os.environ[env_var].replace("\\", "/"))
 
     # Finally load hyperparams
     return HyperParams(json.loads(jsmin(content)))
@@ -82,6 +86,7 @@ class HyperParams(object):
                     setattr(self, a, [HyperParams(x) if isinstance(x, dict) else x for x in b])
                 else:
                     setattr(self, a, HyperParams(b) if isinstance(b, dict) else b)
+            self.immutable = True
 
     def to_dict(self):
         return dict((key, value.to_dict()) if isinstance(value, HyperParams) else (key, value)
@@ -101,7 +106,7 @@ class HyperParams(object):
         :return: The value from the dict or the default.
         """
         if default is _sentinel:
-            default = HyperParams({})
+            default = HyperParams()
         return self.__dict__[key] if key in self.__dict__ else default
 
     def __getitem__(self, key):
@@ -112,6 +117,23 @@ class HyperParams(object):
         """
         return self.get(key)
 
-    #def __getattr__(self, attr):
-    #    print("Warning hyperparameter {} not found returning dummy object.".format(attr))
-    #    return HyperParams()
+    def __setattr__(self, key, value):
+        if "immutable" not in self.__dict__:
+            self.__dict__["immutable"] = False
+        if self.immutable:
+            raise RuntimeError("Trying to modify hyperparameters outside constructor.")
+
+        if isinstance(value, str):
+            # Try to match linux path style with anything that matches
+            for env_var in list(os.environ.keys()):
+                s = "$" + env_var
+                value = value.replace(s, os.environ[env_var].replace("\\", "/"))
+
+            # Try to match windows path style with anything that matches
+            for env_var in list(os.environ.keys()):
+                s = "%" + env_var + "%"
+                value = value.replace(s, os.environ[env_var].replace("\\", "/"))
+
+            if "%" in value or "$" in value:
+                raise RuntimeError("Cannot resove all environment variables used in: '{}'".format(value))
+        super.__setattr__(self, key, value)

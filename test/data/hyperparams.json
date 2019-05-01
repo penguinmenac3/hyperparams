@@ -10,6 +10,6 @@
         "Foo",
         "bar"
     ],
-    "TestWinEnvPythonPath": "%TMP%/Foobar",
-    "TestLinuxEnvPythonPath": "$TMP/Foobar"
+    "TestWinEnvPythonPath": "%HOME%/Foobar",
+    "TestLinuxEnvPythonPath": "$HOME/Foobar"
 }
