@@ -80,13 +80,13 @@ class HyperParams(object):
 
         :param d: The dictionary to convert.
         """
+        self.immutable = False
         if d is not None:
             for a, b in d.items():
                 if isinstance(b, (list, tuple)):
                     setattr(self, a, [HyperParams(x) if isinstance(x, dict) else x for x in b])
                 else:
                     setattr(self, a, HyperParams(b) if isinstance(b, dict) else b)
-            self.immutable = True
 
     def to_dict(self):
         return dict((key, value.to_dict()) if isinstance(value, HyperParams) else (key, value)
@@ -118,7 +118,7 @@ class HyperParams(object):
         return self.get(key)
 
     def __setattr__(self, key, value):
-        if "immutable" not in self.__dict__:
+        if "immutable" not in self.__dict__:  # In case users might not call constructor
             self.__dict__["immutable"] = False
         if self.immutable:
             raise RuntimeError("Trying to modify hyperparameters outside constructor.")
