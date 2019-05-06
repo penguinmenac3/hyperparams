@@ -23,6 +23,7 @@ import os
 import re
 import json
 from importlib import import_module
+import inspect
 try:
     from jsmin import jsmin
 except ModuleNotFoundError:
@@ -42,6 +43,8 @@ def import_params(params_file):
     symbols = [x for x in symbols if not x.startswith("__") and not x == "HyperParams"]
     n = None
     for x in symbols:
+        if not inspect.isclass(module.__dict__[x]):  # in Case we found something that is not a class ignore it.
+            continue
         if issubclass(module.__dict__[x], HyperParams):
             # Allow multiple derivatives of hyperparams, when they are derivable from each other in any direction.
             if n is not None and not issubclass(module.__dict__[x], module.__dict__[n]) and not issubclass(module.__dict__[n], module.__dict__[x]):
@@ -55,13 +58,13 @@ def import_params(params_file):
     return config
 
 
-@DeprecationWarning
 def load_params(filepath):
     """
     Load your hyper parameters from a json file.
     :param filepath: Path to the json file.
     :return: A hyper parameters object.
     """
+    print("WARNING: You should switch to using hyperparam python files. Just subclass HyperParams object in a *.py and load it instead of a json.")
     # Read the file
     with open(filepath) as file:
         content = file.read()
