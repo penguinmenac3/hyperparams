@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-__version__ = '1.2.2'
+__version__ = '1.2.3'
 
 here = path.abspath(path.dirname(__file__))
 
@@ -26,9 +26,9 @@ setup(
     download_url='https://github.com/penguinmenac3/hyperparams/tarball/' + __version__,
     license='BSD',
     classifiers=[
-      'Development Status :: 3 - Alpha',
-      'Intended Audience :: Developers',
-      'Programming Language :: Python',
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python',
     ],
     keywords='',
     packages=find_packages(exclude=['examples', 'docs', 'tests*']),

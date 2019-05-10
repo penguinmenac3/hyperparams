@@ -1,25 +1,31 @@
 from hyperparams import load_params
 import os
 
+
 def test_int():
     params = load_params("test/data/hyperparams.json")
     assert params.TestInt == 42
+
 
 def test_float():
     params = load_params("test/data/hyperparams.json")
     assert params.TestFloat == 4.2
 
+
 def test_str():
     params = load_params("test/data/hyperparams.json")
     assert params.TestStr == "Foo"
+
 
 def test_obj():
     params = load_params("test/data/hyperparams.json")
     assert params.TestObj.TestA == "a" and params.TestObj.TestB == "b"
 
+
 def test_arr():
     params = load_params("test/data/hyperparams.json")
     assert params.TestArr[0] == "Foo" and params.TestArr[1] == "bar"
+
 
 def test_env_var():
     params = load_params("test/data/hyperparams.json")
@@ -35,6 +41,13 @@ def test_env_var():
     print(params.foobar)
     assert params.foobar == params.foobaz
 
+
+def test_equal():
+    params1 = load_params("test/data/hyperparams.json")
+    params2 = load_params("test/data/hyperparams.json")
+    assert params1 == params2
+
+
 if __name__ == "__main__":
     test_int()
     test_float()
@@ -42,4 +55,5 @@ if __name__ == "__main__":
     test_obj()
     test_arr()
     test_env_var()
+    test_equal()
     print("All tests passed!")

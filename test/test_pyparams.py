@@ -1,5 +1,6 @@
 from hyperparams.hyperparams import import_params
 
+
 def test_pyparams():
     params = import_params("test/data/params.py")
     params.immutable = True

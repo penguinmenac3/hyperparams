@@ -1,17 +1,17 @@
 # MIT License
-# 
+#
 # Copyright (c) 2018 Michael Fuerst
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,7 +27,7 @@ import inspect
 try:
     from jsmin import jsmin
 except ModuleNotFoundError:
-    jsmin = lambda x: x
+    def jsmin(x): return x
 
 _sentinel = object()
 
@@ -48,7 +48,8 @@ def import_params(params_file):
         if issubclass(module.__dict__[x], HyperParams):
             # Allow multiple derivatives of hyperparams, when they are derivable from each other in any direction.
             if n is not None and not issubclass(module.__dict__[x], module.__dict__[n]) and not issubclass(module.__dict__[n], module.__dict__[x]):
-                raise RuntimeError("You must only have one class derived from HyperParams in {}. It cannot be decided which to use.".format(params_file))
+                raise RuntimeError(
+                    "You must only have one class derived from HyperParams in {}. It cannot be decided which to use.".format(params_file))
             # Pick the most specific one if they can be derived.
             if n is None or issubclass(module.__dict__[x], module.__dict__[n]):
                 n = x
@@ -77,6 +78,7 @@ class HyperParams(object):
     """
     Converts a dictionary into an object.
     """
+
     def __init__(self, d=None):
         """
         Create an object from a dictionary.
@@ -97,7 +99,7 @@ class HyperParams(object):
 
     def __repr__(self):
         return "HyperParams(" + self.__str__() + ")"
-    
+
     def __str__(self):
         return json.dumps(self.to_dict(), indent=4, sort_keys=True)
 
@@ -140,3 +142,20 @@ class HyperParams(object):
             if "%" in value or "$" in value:
                 raise RuntimeError("Cannot resove all environment variables used in: '{}'".format(value))
         super.__setattr__(self, key, value)
+
+    def __eq__(self, other):
+        if not isinstance(other, HyperParams):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        for k in self.__dict__:
+            if not k in other.__dict__:
+                return False
+            if not self.__dict__[k] == other.__dict__[k]:
+                return False
+
+        for k in other.__dict__:
+            if not k in self.__dict__:
+                return False
+
+        return True
